@@ -1,22 +1,24 @@
 package com.hectorllb.neonFichaje.ui.screens.home
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hectorllb.neonFichaje.domain.model.DashboardStats
 import com.hectorllb.neonFichaje.domain.usecase.ClockInUseCase
 import com.hectorllb.neonFichaje.domain.usecase.ClockOutUseCase
 import com.hectorllb.neonFichaje.domain.usecase.GetDashboardStatsUseCase
+import com.hectorllb.neonFichaje.service.TimerService
 import com.hectorllb.neonFichaje.utils.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import java.time.Instant
 import javax.inject.Inject
 
 data class HomeUiState(
@@ -30,27 +32,19 @@ class HomeViewModel @Inject constructor(
     private val clockInUseCase: ClockInUseCase,
     private val clockOutUseCase: ClockOutUseCase,
     getDashboardStatsUseCase: GetDashboardStatsUseCase,
-    private val notificationHelper: NotificationHelper
+    private val notificationHelper: NotificationHelper,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    // Combine stats with a ticker to update active duration
-    // Actually, GetDashboardStatsUseCase depends on DB updates. 
-    // To show "seconds ticking" we might need a local ticker in UI or here.
-    // Ideally, the stats flow emits when DB changes. The ticker is purely for UI "elapsed time" display.
-    // But "DashboardStats.workedTodaySeconds" includes the open session duration. 
-    // If we want it to tick, we need to trigger the flow or combine with a ticker.
-    
-    // For simplicity, we will trust the UseCase updates on DB change, 
-    // and we can have a separate "currentTime" flow for the UI to calculate live diffs if needed.
-    // OR we trigger a refresh.
-    
-    // Let's rely on the UseCase. To make it "tick", we can emit into a trigger flow every second?
-    // No, that's expensive for DB queries.
-    // Better: The UI receives the "StartTime" of the active session. The UI counts up.
-    // The "Stats" show the committed/base time.
     
     val uiState: StateFlow<HomeUiState> = getDashboardStatsUseCase()
-        .map { stats -> HomeUiState(stats = stats, isLoading = false) }
+        .map { stats ->
+            // Check if we need to restore service (e.g. after app kill)
+            if (stats.isClockedIn) {
+                // Ensure service is running
+                startTimerService(stats.currentSessionStartTime?.toEpochMilli() ?: 0L)
+            }
+            HomeUiState(stats = stats, isLoading = false)
+        }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
@@ -60,7 +54,9 @@ class HomeViewModel @Inject constructor(
     fun onClockIn() {
         viewModelScope.launch {
             clockInUseCase().onSuccess {
-                notificationHelper.showClockInNotification()
+                // Service will be started by the Flow update, but we can start it immediately for responsiveness
+                // We assume start time is approx now
+                startTimerService(System.currentTimeMillis())
             }.onFailure { e ->
                 // Handle error
             }
@@ -71,11 +67,21 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             clockOutUseCase().onSuccess {
                 notificationHelper.showClockOutNotification()
+                // Service will stop itself when it detects entry closed
             }.onFailure { e ->
                 // Handle error
             }
         }
     }
-}
 
-// Helper to map flow
+    private fun startTimerService(startTime: Long) {
+        val intent = Intent(context, TimerService::class.java).apply {
+            putExtra(TimerService.EXTRA_START_TIME, startTime)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+}

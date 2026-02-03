@@ -1,7 +1,6 @@
 package com.hectorllb.neonFichaje.ui.screens.home
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,15 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.hectorllb.neonFichaje.ui.theme.NeonBlue
-import com.hectorllb.neonFichaje.ui.theme.NeonGreen
-import com.hectorllb.neonFichaje.ui.theme.NeonPurple
 import com.hectorllb.neonFichaje.utils.TimeUtils
 import kotlinx.coroutines.delay
 import java.time.Duration
@@ -96,16 +93,19 @@ fun HomeScreen(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier.size(250.dp)
                 ) {
+                    val progressColor = MaterialTheme.colorScheme.tertiary
+                    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         drawArc(
-                            color = NeonPurple.copy(alpha = 0.2f),
+                            color = trackColor,
                             startAngle = 0f,
                             sweepAngle = 360f,
                             useCenter = false,
                             style = Stroke(width = 20.dp.toPx())
                         )
                         drawArc(
-                            color = NeonGreen,
+                            color = progressColor,
                             startAngle = -90f,
                             sweepAngle = progress * 360f,
                             useCenter = false,
@@ -117,7 +117,7 @@ fun HomeScreen(
                         Text(
                             text = "${(progress * 100).toInt()}%",
                             style = MaterialTheme.typography.displayLarge,
-                            color = NeonGreen
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "Semana",
@@ -136,12 +136,12 @@ fun HomeScreen(
                     StatCard(
                         title = "Hoy",
                         value = TimeUtils.formatDuration(totalTodaySeconds),
-                        color = NeonBlue
+                        color = MaterialTheme.colorScheme.primary
                     )
                     StatCard(
                         title = "Objetivo",
                         value = TimeUtils.formatDuration(stats.weeklyTargetSeconds),
-                        color = NeonPurple
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
 
@@ -157,7 +157,7 @@ fun HomeScreen(
                         .height(80.dp),
                     shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (stats.isClockedIn) MaterialTheme.colorScheme.error else NeonGreen
+                        containerColor = if (stats.isClockedIn) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
                     )
                 ) {
                     Text(
@@ -181,7 +181,7 @@ fun HomeScreen(
 }
 
 @Composable
-fun StatCard(title: String, value: String, color: androidx.compose.ui.graphics.Color) {
+fun StatCard(title: String, value: String, color: Color) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.size(140.dp, 100.dp)

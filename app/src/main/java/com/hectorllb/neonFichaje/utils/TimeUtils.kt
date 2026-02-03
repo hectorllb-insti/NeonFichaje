@@ -14,7 +14,15 @@ object TimeUtils {
         val duration = Duration.ofSeconds(seconds)
         val hours = duration.toHours()
         val minutes = duration.toMinutesPart()
-        return String.format(Locale.getDefault(), "%02dh %02dm", hours, minutes)
+        return String.format(Locale.getDefault(), "%dh %02dm", hours, minutes)
+    }
+
+    /**
+     * Formats decimal hours (e.g. 5.5) to "5h 30m"
+     */
+    fun formatDecimalHours(hoursDecimal: Double): String {
+        val totalSeconds = (hoursDecimal * 3600).toLong()
+        return formatDuration(totalSeconds)
     }
 
     fun formatTime(instant: Instant): String {

@@ -3,6 +3,7 @@ package com.hectorllb.neonFichaje.data.database
 import androidx.room.TypeConverter
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 class Converters {
     @TypeConverter
@@ -23,5 +24,15 @@ class Converters {
     @TypeConverter
     fun dateToString(date: LocalDate?): String? {
         return date?.toString()
+    }
+
+    @TypeConverter
+    fun fromTimeString(value: String?): LocalTime? {
+        return value?.let { LocalTime.parse(it) }
+    }
+
+    @TypeConverter
+    fun timeToString(time: LocalTime?): String? {
+        return time?.toString()
     }
 }

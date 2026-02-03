@@ -10,40 +10,51 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = NeonBlue,
-    secondary = NeonPurple,
-    tertiary = NeonGreen,
-    background = NeonDarkBg,
-    surface = NeonSurface,
+    primary = PrimaryLightBlue,
+    onPrimary = NeutralBlack,
+    primaryContainer = PrimaryBlue,
+    onPrimaryContainer = NeutralWhite,
+    secondary = AccentCyan,
+    onSecondary = NeutralBlack,
+    tertiary = StatusGreen,
+    background = NeutralBlack,
+    surface = NeutralGrey900,
+    onBackground = NeutralGrey200,
+    onSurface = NeutralGrey200,
+    surfaceVariant = NeutralGrey800,
+    onSurfaceVariant = NeutralGrey300,
+    error = StatusRed
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = NeonBlue,
-    secondary = NeonPurple,
-    tertiary = NeonGreen
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = PrimaryBlue,
+    onPrimary = NeutralWhite,
+    primaryContainer = PrimaryLightBlue,
+    onPrimaryContainer = NeutralWhite,
+    secondary = AccentTeal,
+    onSecondary = NeutralWhite,
+    tertiary = StatusGreen,
+    background = NeutralGrey50,
+    surface = NeutralWhite,
+    onBackground = NeutralGrey900,
+    onSurface = NeutralGrey900,
+    surfaceVariant = NeutralGrey200,
+    onSurfaceVariant = NeutralGrey800,
+    error = StatusRed
 )
 
 @Composable
 fun NeonFichajeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Disabled by default to enforce brand colors
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -58,7 +69,7 @@ fun NeonFichajeTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.background.toArgb() // Immersive look
+            window.statusBarColor = colorScheme.primary.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
