@@ -6,13 +6,18 @@ import com.hectorllb.neonFichaje.domain.repository.TimeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 class GetDashboardStatsUseCaseTest {
 
@@ -64,12 +69,53 @@ class GetDashboardStatsUseCaseTest {
         assertEquals(true, stats.isClockedIn)
         assertNotNull(stats.currentSessionStartTime)
     }
+
+    @Test
+    fun `invoke calls correct repository method and excludes old entries`() = runTest {
+        val today = LocalDate.now()
+        val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val lastWeek = startOfWeek.minusWeeks(1)
+        val now = Instant.now()
+
+        // Entry from last week (1 hour)
+        fakeRepository.addEntry(
+            TimeEntry(
+                id = 10,
+                startTime = now.minusSeconds(3600*24*8), // 8 days ago approx
+                endTime = now.minusSeconds(3600*24*8 - 3600),
+                date = lastWeek
+            )
+        )
+
+        // Entry from today (2 hours)
+        fakeRepository.addEntry(
+            TimeEntry(
+                id = 11,
+                startTime = now.minusSeconds(7200),
+                endTime = now,
+                date = today
+            )
+        )
+
+        val stats = useCase().first()
+
+        // Assert correctness
+        assertEquals(7200L, stats.completedTodaySeconds)
+        assertEquals(7200L, stats.completedWeekSeconds) // Should ignore last week
+
+        // Verify Optimization
+        assertTrue("Should call getEntriesForDateRange", fakeRepository.wasGetEntriesForDateRangeCalled)
+        assertFalse("Should NOT call getAllEntries", fakeRepository.wasGetAllEntriesCalled)
+    }
 }
 
 class FakeTimeRepository : TimeRepository {
     private val entriesFlow = MutableStateFlow<List<TimeEntry>>(emptyList())
     private val configFlow = MutableStateFlow(UserConfig(40.0, true))
     private val openEntryFlow = MutableStateFlow<TimeEntry?>(null)
+
+    var wasGetAllEntriesCalled = false
+    var wasGetEntriesForDateRangeCalled = false
 
     fun addEntry(entry: TimeEntry) {
         val current = entriesFlow.value.toMutableList()
@@ -99,10 +145,18 @@ class FakeTimeRepository : TimeRepository {
     override suspend fun getOpenEntryOneShot(): TimeEntry? = openEntryFlow.value
 
     override fun getEntriesForDateRange(start: LocalDate, end: LocalDate): Flow<List<TimeEntry>> {
-        return entriesFlow // Simplified
+        wasGetEntriesForDateRangeCalled = true
+        return entriesFlow.map { list ->
+            list.filter {
+                !it.date.isBefore(start) && !it.date.isAfter(end)
+            }
+        }
     }
 
-    override fun getAllEntries(): Flow<List<TimeEntry>> = entriesFlow
+    override fun getAllEntries(): Flow<List<TimeEntry>> {
+        wasGetAllEntriesCalled = true
+        return entriesFlow
+    }
 
     override fun getUserConfig(): Flow<UserConfig> = configFlow
 
