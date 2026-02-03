@@ -7,6 +7,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 object TimeUtils {
+    private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
+    private val DATE_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM")
+
     fun formatDuration(seconds: Long): String {
         val duration = Duration.ofSeconds(seconds)
         val hours = duration.toHours()
@@ -15,14 +18,16 @@ object TimeUtils {
     }
 
     fun formatTime(instant: Instant): String {
-        val formatter = DateTimeFormatter.ofPattern("HH:mm")
+        return TIME_FORMATTER
+            .withLocale(Locale.getDefault())
             .withZone(ZoneId.systemDefault())
-        return formatter.format(instant)
+            .format(instant)
     }
     
     fun formatDate(instant: Instant): String {
-        val formatter = DateTimeFormatter.ofPattern("EEE, dd MMM")
+        return DATE_FORMATTER
+            .withLocale(Locale.getDefault())
             .withZone(ZoneId.systemDefault())
-        return formatter.format(instant)
+            .format(instant)
     }
 }
