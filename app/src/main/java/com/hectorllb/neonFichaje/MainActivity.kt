@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
@@ -25,15 +26,32 @@ import androidx.navigation.compose.rememberNavController
 import com.hectorllb.neonFichaje.ui.navigation.Screen
 import com.hectorllb.neonFichaje.ui.screens.history.HistoryScreen
 import com.hectorllb.neonFichaje.ui.screens.home.HomeScreen
+import com.hectorllb.neonFichaje.ui.screens.schedule.ScheduleScreen
 import com.hectorllb.neonFichaje.ui.screens.settings.SettingsScreen
 import com.hectorllb.neonFichaje.ui.screens.stats.StatsScreen
 import com.hectorllb.neonFichaje.ui.theme.NeonFichajeTheme
+import com.hectorllb.neonFichaje.worker.SchedulerWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Schedule Daily Alarms
+        val workRequest = PeriodicWorkRequestBuilder<SchedulerWorker>(24, TimeUnit.HOURS)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "DailyScheduler",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+
         setContent {
             NeonFichajeTheme {
                 MainScreen()
@@ -57,6 +75,20 @@ fun MainScreen() {
                     selected = currentDestination?.route == Screen.Home.route,
                     onClick = {
                         navController.navigate(Screen.Home.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.DateRange, contentDescription = "Schedule") },
+                    label = { Text("Calendario") },
+                    selected = currentDestination?.route == Screen.Schedule.route,
+                    onClick = {
+                        navController.navigate(Screen.Schedule.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
                             }
@@ -116,6 +148,7 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) { HomeScreen() }
+            composable(Screen.Schedule.route) { ScheduleScreen() }
             composable(Screen.History.route) { HistoryScreen() }
             composable(Screen.Stats.route) { StatsScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }

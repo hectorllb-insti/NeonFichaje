@@ -18,45 +18,47 @@ class NotificationHelper @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        const val CHANNEL_ID = "neon_fichaje_channel"
-        const val CHANNEL_NAME = "Fichaje Status"
+        const val CHANNEL_STATUS_ID = "neon_fichaje_status"
+        const val CHANNEL_REMINDERS_ID = "neon_fichaje_reminders"
+
         const val NOTIFICATION_ID = 1001
     }
 
     init {
-        createNotificationChannel()
+        createNotificationChannels()
     }
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-                description = "Notificaciones de entrada y salida"
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            // Status Channel (Low Importance, for ongoing timer)
+            val statusChannel = NotificationChannel(
+                CHANNEL_STATUS_ID,
+                "Estado del Fichaje",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Muestra el tiempo transcurrido de la jornada actual"
+                setShowBadge(false)
             }
-            val notificationManager: NotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+
+            // Reminders Channel (High Importance, for alerts)
+            val remindersChannel = NotificationChannel(
+                CHANNEL_REMINDERS_ID,
+                "Recordatorios",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Avisos de entrada y salida"
+                enableVibration(true)
+            }
+
+            notificationManager.createNotificationChannels(listOf(statusChannel, remindersChannel))
         }
     }
 
+    // Deprecated: Replaced by TimerService
     fun showClockInNotification() {
-        if (ActivityCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // Permission should be requested in UI
-            return
-        }
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher_round) // Default icon for now
-            .setContentTitle("Has fichado entrada")
-            .setContentText("Tu jornada ha comenzado.")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setOngoing(true) // Persistent while working?
-
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, builder.build())
+        // No-op or delegate to service logic
     }
 
     fun showClockOutNotification() {
@@ -68,9 +70,10 @@ class NotificationHelper @Inject constructor(
             return
         }
         
+        // Cancel the ongoing timer notification
         NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_STATUS_ID)
             .setSmallIcon(R.mipmap.ic_launcher_round)
             .setContentTitle("Has fichado salida")
             .setContentText("Tu jornada ha terminado.")
@@ -78,5 +81,32 @@ class NotificationHelper @Inject constructor(
             .setAutoCancel(true)
 
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID + 1, builder.build())
+    }
+
+    fun getTimerNotification(startTime: Long): android.app.Notification {
+        createNotificationChannels()
+
+        return NotificationCompat.Builder(context, CHANNEL_STATUS_ID)
+            .setSmallIcon(R.mipmap.ic_launcher_round)
+            .setContentTitle("Jornada en curso")
+            .setWhen(startTime)
+            .setUsesChronometer(true)
+            .setOngoing(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    fun showReminderNotification(title: String, message: String) {
+        createNotificationChannels()
+        val builder = NotificationCompat.Builder(context, CHANNEL_REMINDERS_ID)
+            .setSmallIcon(R.mipmap.ic_launcher_round)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+
+        NotificationManagerCompat.from(context).notify(System.currentTimeMillis().toInt(), builder.build())
     }
 }

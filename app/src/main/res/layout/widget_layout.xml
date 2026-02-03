@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Neon Fichaje"
+        android:textColor="@color/widget_text"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_hours_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="00h 00m"
+        android:textColor="@color/widget_text"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <Chronometer
+        android:id="@+id/widget_chronometer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/widget_text"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/widget_btn_in"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@color/widget_button_green"
+        android:text="ENTRAR"
+        android:textColor="#FFFFFF"
+        android:visibility="visible" />
+
+    <Button
+        android:id="@+id/widget_btn_out"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@color/widget_button_red"
+        android:text="SALIR"
+        android:textColor="#FFFFFF"
+        android:visibility="gone" />
+
+</LinearLayout>
