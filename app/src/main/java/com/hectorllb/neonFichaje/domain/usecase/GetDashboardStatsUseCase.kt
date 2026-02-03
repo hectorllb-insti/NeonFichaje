@@ -22,14 +22,14 @@ class GetDashboardStatsUseCase @Inject constructor(
             repository.getUserConfig(),
             repository.getOpenEntry()
         ) { entries, config, openEntry ->
-
+            
             // Calculate Closed Sessions only
-            val weekEntries = entries.filter {
-                it.endTime != null
-            }
-
-            val todayEntries = entries.filter {
-                it.date.isEqual(today) && it.endTime != null
+            // Repository returns entries within the date range.
+            // We still need to filter for closed entries (endTime != null).
+            val weekEntries = entries.filter { it.endTime != null }
+            
+            val todayEntries = weekEntries.filter {
+                it.date.isEqual(today)
             }
 
             val completedWeekSeconds = weekEntries.sumOf { it.durationSeconds }
