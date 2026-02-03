@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 data class HomeUiState(
@@ -78,4 +79,3 @@ class HomeViewModel @Inject constructor(
 }
 
 // Helper to map flow
-import kotlinx.coroutines.flow.map

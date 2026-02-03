@@ -42,6 +42,7 @@ class StatsViewModel @Inject constructor(
             }
             
             chartEntryModelProducer.setEntries(dailyHours)
+            Unit
         }
         .stateIn(
             viewModelScope,
