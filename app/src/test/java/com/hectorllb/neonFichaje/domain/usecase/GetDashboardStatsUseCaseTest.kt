@@ -5,11 +5,14 @@ import com.hectorllb.neonFichaje.domain.model.UserConfig
 import com.hectorllb.neonFichaje.domain.repository.TimeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
@@ -64,12 +67,22 @@ class GetDashboardStatsUseCaseTest {
         assertEquals(true, stats.isClockedIn)
         assertNotNull(stats.currentSessionStartTime)
     }
+
+    @Test
+    fun `invoke uses optimized repository method`() = runTest {
+        useCase().first()
+        assertTrue("Should use getEntriesForDateRange", fakeRepository.getEntriesForDateRangeCalled)
+        assertFalse("Should NOT use getAllEntries", fakeRepository.getAllEntriesCalled)
+    }
 }
 
 class FakeTimeRepository : TimeRepository {
     private val entriesFlow = MutableStateFlow<List<TimeEntry>>(emptyList())
     private val configFlow = MutableStateFlow(UserConfig(40.0, true))
     private val openEntryFlow = MutableStateFlow<TimeEntry?>(null)
+
+    var getEntriesForDateRangeCalled = false
+    var getAllEntriesCalled = false
 
     fun addEntry(entry: TimeEntry) {
         val current = entriesFlow.value.toMutableList()
@@ -99,10 +112,18 @@ class FakeTimeRepository : TimeRepository {
     override suspend fun getOpenEntryOneShot(): TimeEntry? = openEntryFlow.value
 
     override fun getEntriesForDateRange(start: LocalDate, end: LocalDate): Flow<List<TimeEntry>> {
-        return entriesFlow // Simplified
+        getEntriesForDateRangeCalled = true
+        return entriesFlow.map { list ->
+            list.filter { entry ->
+                !entry.date.isBefore(start) && !entry.date.isAfter(end)
+            }
+        }
     }
 
-    override fun getAllEntries(): Flow<List<TimeEntry>> = entriesFlow
+    override fun getAllEntries(): Flow<List<TimeEntry>> {
+        getAllEntriesCalled = true
+        return entriesFlow
+    }
 
     override fun getUserConfig(): Flow<UserConfig> = configFlow
 
