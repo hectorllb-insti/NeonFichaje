@@ -13,23 +13,23 @@ class GetDashboardStatsUseCase @Inject constructor(
     private val repository: TimeRepository
 ) {
     operator fun invoke(): Flow<DashboardStats> {
+        val today = LocalDate.now()
+        val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+
         return combine(
-            repository.getAllEntries(),
+            repository.getEntriesForDateRange(startOfWeek, endOfWeek),
             repository.getUserConfig(),
             repository.getOpenEntry()
         ) { entries, config, openEntry ->
             
-            val today = LocalDate.now()
-            val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-            val endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-
             // Calculate Closed Sessions only
-            val weekEntries = entries.filter { 
-                !it.date.isBefore(startOfWeek) && !it.date.isAfter(endOfWeek) && it.endTime != null
-            }
+            // Repository returns entries within the date range.
+            // We still need to filter for closed entries (endTime != null).
+            val weekEntries = entries.filter { it.endTime != null }
             
-            val todayEntries = entries.filter {
-                it.date.isEqual(today) && it.endTime != null
+            val todayEntries = weekEntries.filter {
+                it.date.isEqual(today)
             }
 
             val completedWeekSeconds = weekEntries.sumOf { it.durationSeconds }
