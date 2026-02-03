@@ -23,16 +23,12 @@ class StatsViewModel @Inject constructor(
     // Simple weekly stats: Monday to Sunday of current week
     val chartEntryModelProducer = ChartEntryModelProducer()
 
-    val statsState: StateFlow<Unit> = repository.getAllEntries()
-        .map { entries ->
-            val today = LocalDate.now()
-            val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-            val endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+    private val today = LocalDate.now()
+    private val startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    private val endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
 
-            val weekEntries = entries.filter {
-                !it.date.isBefore(startOfWeek) && !it.date.isAfter(endOfWeek)
-            }
-
+    val statsState: StateFlow<Unit> = repository.getEntriesForDateRange(startOfWeek, endOfWeek)
+        .map { weekEntries ->
             // Group by DayOfWeek (1..7)
             val dailyHours = (1..7).map { dayIndex ->
                 val dayOfWeek = DayOfWeek.of(dayIndex)
